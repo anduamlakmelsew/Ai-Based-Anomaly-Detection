@@ -3,45 +3,85 @@ import {
   Line,
   XAxis,
   YAxis,
-  CartesianGrid,
   Tooltip,
-  Legend,
+  CartesianGrid,
   ResponsiveContainer,
+  BarChart,
+  Bar,
 } from "recharts";
 
-function TrafficChart() {
-  const data = [
-    { date: "2026-02-15", anomalies: 5 },
-    { date: "2026-02-16", anomalies: 8 },
-    { date: "2026-02-17", anomalies: 3 },
-    { date: "2026-02-18", anomalies: 10 },
-    { date: "2026-02-19", anomalies: 6 },
-    { date: "2026-02-20", anomalies: 12 },
-  ];
+export default function TrafficChart({ scans }) {
+  if (!scans || scans.length === 0) {
+    return <p style={{ color: "#fff" }}>No data for charts</p>;
+  }
+
+  // =========================
+  // 📈 RISK TREND DATA
+  // =========================
+  const trendData = scans
+    .slice(0, 10) // last 10 scans
+    .reverse()
+    .map((scan) => ({
+      time: new Date(scan.timestamp).toLocaleTimeString(),
+      risk: scan.risk?.score || 0,
+    }));
+
+  // =========================
+  // 📊 SEVERITY DISTRIBUTION
+  // =========================
+  const severityMap = {
+    CRITICAL: 0,
+    HIGH: 0,
+    MEDIUM: 0,
+    LOW: 0,
+    INFO: 0,
+  };
+
+  scans.forEach((scan) => {
+    (scan.findings || []).forEach((f) => {
+      const sev = f.severity || "LOW";
+      severityMap[sev]++;
+    });
+  });
+
+  const severityData = Object.keys(severityMap).map((key) => ({
+    name: key,
+    value: severityMap[key],
+  }));
 
   return (
-    <div style={{ marginTop: "40px" }}>
-      <h3>Anomaly Detection Trend</h3>
-      <ResponsiveContainer width="100%" height={300}>
-        <LineChart
-          data={data}
-          margin={{ top: 5, right: 20, bottom: 5, left: 0 }}
-        >
-          <CartesianGrid stroke="#f5f5f5" />
-          <XAxis dataKey="date" />
-          <YAxis />
-          <Tooltip />
-          <Legend />
-          <Line
-            type="monotone"
-            dataKey="anomalies"
-            stroke="#dc2626"
-            strokeWidth={2}
-          />
-        </LineChart>
-      </ResponsiveContainer>
+    <div style={{ display: "grid", gap: "20px" }}>
+      {/* ========================= */}
+      {/* 📈 RISK TREND */}
+      {/* ========================= */}
+      <div className="card">
+        <h4>📈 Risk Trend</h4>
+        <ResponsiveContainer width="100%" height={250}>
+          <LineChart data={trendData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="time" />
+            <YAxis />
+            <Tooltip />
+            <Line type="monotone" dataKey="risk" stroke="#22c55e" />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* ========================= */}
+      {/* 📊 SEVERITY DISTRIBUTION */}
+      {/* ========================= */}
+      <div className="card">
+        <h4>📊 Severity Distribution</h4>
+        <ResponsiveContainer width="100%" height={250}>
+          <BarChart data={severityData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="name" />
+            <YAxis />
+            <Tooltip />
+            <Bar dataKey="value" fill="#3b82f6" />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 }
-
-export default TrafficChart;

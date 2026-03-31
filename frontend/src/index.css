@@ -1,0 +1,44 @@
+body {
+  margin: 0;
+  font-family: "Inter", sans-serif;
+  background-color: #0f172a;
+  color: #e2e8f0;
+}
+
+/* Layout */
+.dashboard {
+  padding: 20px;
+}
+
+/* Cards */
+.card {
+  background: #1e293b;
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.4);
+}
+
+/* Table */
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  padding: 12px;
+  text-align: left;
+}
+
+th {
+  background: #334155;
+}
+
+tr {
+  border-bottom: 1px solid #334155;
+}
+
+tr:hover {
+  background: #1e293b;
+}

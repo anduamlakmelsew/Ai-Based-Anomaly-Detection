@@ -1,34 +1,63 @@
-import Table from "../../components/common/Table";
+import { useEffect, useState } from "react";
+import { getAuditLogs } from "../../services/auditService";
 
-function ActivityLog() {
-  const columns = ["Time", "Target", "Scan Type", "Status"];
-  const data = [
-    {
-      Time: "2026-02-20 10:00",
-      Target: "192.168.1.10",
-      "Scan Type": "System",
-      Status: "Completed",
-    },
-    {
-      Time: "2026-02-20 09:30",
-      Target: "example.com",
-      "Scan Type": "Web",
-      Status: "Completed",
-    },
-    {
-      Time: "2026-02-19 18:45",
-      Target: "192.168.1.15",
-      "Scan Type": "Network",
-      Status: "Critical",
-    },
-  ];
+export default function ActivityLog() {
+  const [logs, setLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchLogs = async () => {
+      setLoading(true);
+      setError("");
+
+      try {
+        const data = await getAuditLogs();
+        if (isMounted) setLogs(Array.isArray(data) ? data : []);
+      } catch (e) {
+        console.error("Failed to load audit logs:", e);
+        if (isMounted) setError("Failed to load activity log.");
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    fetchLogs();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   return (
-    <div style={{ marginTop: "40px" }}>
-      <h3>Recent Activity</h3>
-      <Table columns={columns} data={data} />
+    <div className="card">
+      <h3>📜 Activity Log</h3>
+
+      {loading && <p>Loading...</p>}
+      {error && <p style={{ color: "red" }}>{error}</p>}
+
+      {!loading && !error && logs.length === 0 && <p>No activity yet.</p>}
+
+      {!loading && !error && logs.length > 0 && (
+        <table>
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {logs.map((log) => (
+              <tr key={log.id}>
+                <td>{new Date(log.created_at).toLocaleString()}</td>
+                <td>{log.action}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </div>
   );
 }
-
-export default ActivityLog;

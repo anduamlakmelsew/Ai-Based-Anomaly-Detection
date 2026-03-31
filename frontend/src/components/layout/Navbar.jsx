@@ -1,21 +1,41 @@
-function Navbar() {
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
+import { useTheme } from "../../context/ThemeContext";
+
+export default function Navbar() {
+  const { user, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
+
   return (
-    <div
-      style={{
-        height: "60px",
-        background: "#1f2937",
-        color: "white",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: "0 20px",
-        marginLeft: "220px",
-      }}
+    <nav
+      className="card"
+      style={{ display: "flex", justifyContent: "space-between" }}
     >
-      <span>Our AI Based Security Tool</span>
-      <span>Logged in User</span>
-    </div>
+      <Link
+        to="/dashboard"
+        style={{ fontWeight: "bold", textDecoration: "none" }}
+      >
+        AI Scanner
+      </Link>
+
+      <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+        <button onClick={toggleTheme}>
+          {theme === "dark" ? "☀ Light" : "🌙 Dark"}
+        </button>
+
+        {user && (
+          <>
+            <span>👤 {user.username}</span>
+            <button onClick={handleLogout}>Logout</button>
+          </>
+        )}
+      </div>
+    </nav>
   );
 }
-
-export default Navbar;

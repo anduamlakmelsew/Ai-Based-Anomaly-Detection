@@ -1,92 +1,138 @@
 import { useState } from "react";
-import Table from "../../components/common/Table";
+import { startScan } from "../../services/scanService";
 
-function Scanner() {
+export default function ScanForm({ onScanComplete }) {
   const [target, setTarget] = useState("");
-  const [scanType, setScanType] = useState("System");
-  const [scanResults, setScanResults] = useState([]);
+  const [scanType, setScanType] = useState("network");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
-  const columns = ["Time", "Target", "Scan Type", "Status"];
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-  // Dummy scan function (later connect to backend)
-  const handleScan = () => {
-    if (!target) return alert("Please enter a target IP or Domain");
+    if (!target) {
+      setError("Target is required");
+      return;
+    }
 
-    const newResult = {
-      Time: new Date().toISOString().slice(0, 19).replace("T", " "),
-      Target: target,
-      "Scan Type": scanType,
-      Status: "Completed",
-    };
+    setError("");
+    setSuccess("");
+    setLoading(true);
 
-    setScanResults([newResult, ...scanResults]);
-    setTarget("");
+    try {
+      const response = await startScan({
+        target,
+        scan_type: scanType,
+      });
+
+      // 🔥 Get scan data from response
+      const scan = response?.data || response?.result || null;
+
+      if (scan) {
+        // ✅ Callback to parent to update selected scan
+        if (onScanComplete) onScanComplete(scan);
+
+        setSuccess(`Scan started for target: ${scan.target || target}`);
+        setTarget("");
+      } else {
+        console.warn("⚠️ Scan data not found in response");
+        setError("Scan started but no data returned.");
+      }
+    } catch (err) {
+      console.error(err);
+      setError("Scan failed. Check backend logs.");
+    }
+
+    setLoading(false);
   };
 
-  return (
-    <div style={{ padding: "20px" }}>
-      <h2>Scanner Module</h2>
+  const getButtonStyle = (type) => ({
+    padding: "8px 12px",
+    marginRight: "10px",
+    borderRadius: "6px",
+    border: "1px solid #1f2937",
+    background: scanType === type ? "#2563eb" : "#111827",
+    color: "#fff",
+    cursor: "pointer",
+  });
 
-      {/* Scan Form */}
-      <div
-        style={{
-          display: "flex",
-          gap: "10px",
-          marginTop: "20px",
-          flexWrap: "wrap",
-        }}
-      >
+  return (
+    <div
+      style={{
+        padding: "20px",
+        borderRadius: "8px",
+        backgroundColor: "#111827",
+        marginBottom: "20px",
+      }}
+    >
+      <h3 style={{ marginBottom: "15px" }}>Start New Scan</h3>
+
+      {error && <p style={{ color: "red", marginBottom: "10px" }}>{error}</p>}
+      {success && (
+        <p style={{ color: "green", marginBottom: "10px" }}>{success}</p>
+      )}
+
+      <form onSubmit={handleSubmit}>
+        {/* TARGET INPUT */}
         <input
           type="text"
-          placeholder="Enter target IP or Domain"
+          placeholder="Enter target (IP or URL)"
           value={target}
           onChange={(e) => setTarget(e.target.value)}
           style={{
+            width: "100%",
             padding: "10px",
-            flex: "1 1 200px",
-            borderRadius: "5px",
-            border: "1px solid #ccc",
+            borderRadius: "6px",
+            border: "1px solid #1f2937",
+            background: "#020617",
+            color: "#fff",
+            marginBottom: "15px",
           }}
         />
 
-        <select
-          value={scanType}
-          onChange={(e) => setScanType(e.target.value)}
-          style={{
-            padding: "10px",
-            borderRadius: "5px",
-            border: "1px solid #ccc",
-          }}
-        >
-          <option value="System">System</option>
-          <option value="Web">Web</option>
-          <option value="Network">Network</option>
-        </select>
-
-        <button
-          onClick={handleScan}
-          style={{
-            padding: "10px 20px",
-            borderRadius: "5px",
-            border: "none",
-            backgroundColor: "#2563eb",
-            color: "white",
-            cursor: "pointer",
-          }}
-        >
-          Scan
-        </button>
-      </div>
-
-      {/* Scan Results Table */}
-      {scanResults.length > 0 && (
-        <div style={{ marginTop: "40px" }}>
-          <h3>Scan Results</h3>
-          <Table columns={columns} data={scanResults} />
+        {/* SCAN TYPE BUTTONS */}
+        <div style={{ marginBottom: "15px" }}>
+          <button
+            type="button"
+            style={getButtonStyle("network")}
+            onClick={() => setScanType("network")}
+          >
+            Network
+          </button>
+          <button
+            type="button"
+            style={getButtonStyle("system")}
+            onClick={() => setScanType("system")}
+          >
+            System
+          </button>
+          <button
+            type="button"
+            style={getButtonStyle("web")}
+            onClick={() => setScanType("web")}
+          >
+            Web
+          </button>
         </div>
-      )}
+
+        {/* SUBMIT BUTTON */}
+        <button
+          type="submit"
+          disabled={loading}
+          style={{
+            width: "100%",
+            padding: "10px",
+            borderRadius: "6px",
+            border: "none",
+            background: loading ? "#374151" : "#16a34a",
+            color: "#fff",
+            cursor: loading ? "not-allowed" : "pointer",
+          }}
+        >
+          {loading ? "Scanning..." : "Start Scan"}
+        </button>
+      </form>
     </div>
   );
 }
-
-export default Scanner;

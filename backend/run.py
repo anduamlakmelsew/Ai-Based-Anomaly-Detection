@@ -1,9 +1,6 @@
-from app import create_app
-from app.database import db
+from app import create_app, socketio
 
 app = create_app()
 
 if __name__ == "__main__":
-    with app.app_context():
-        db.create_all()  # Creates tables automatically
-    app.run(debug=True)
+    socketio.run(app, debug=True)

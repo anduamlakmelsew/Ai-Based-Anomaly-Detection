@@ -1,44 +1,61 @@
-function Modal({ children, onClose }) {
+import React from "react";
+
+function Modal({ isOpen, title, children, onClose }) {
+  if (!isOpen) return null;
+
   return (
-    <div
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: "rgba(0,0,0,0.5)",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        zIndex: 1000,
-      }}
-    >
-      <div
-        style={{
-          background: "white",
-          padding: "20px",
-          borderRadius: "10px",
-          width: "400px",
-          maxWidth: "90%",
-        }}
-      >
-        <button
-          onClick={onClose}
-          style={{
-            float: "right",
-            background: "transparent",
-            border: "none",
-            fontSize: "18px",
-            cursor: "pointer",
-          }}
-        >
-          ×
-        </button>
-        {children}
+    <div style={modalOverlayStyle}>
+      <div style={modalContentStyle}>
+        <div style={modalHeaderStyle}>
+          <h3>{title}</h3>
+          <button onClick={onClose} style={closeButtonStyle}>
+            &times;
+          </button>
+        </div>
+        <div style={modalBodyStyle}>{children}</div>
       </div>
     </div>
   );
 }
+
+const modalOverlayStyle = {
+  position: "fixed",
+  top: 0,
+  left: 0,
+  width: "100%",
+  height: "100%",
+  background: "rgba(0,0,0,0.5)",
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  zIndex: 1000,
+};
+
+const modalContentStyle = {
+  background: "#fff",
+  padding: "20px",
+  borderRadius: "8px",
+  width: "500px",
+  maxWidth: "90%",
+};
+
+const modalHeaderStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginBottom: "10px",
+};
+
+const modalBodyStyle = {
+  maxHeight: "400px",
+  overflowY: "auto",
+};
+
+const closeButtonStyle = {
+  border: "none",
+  background: "transparent",
+  fontSize: "20px",
+  cursor: "pointer",
+};
 
 export default Modal;

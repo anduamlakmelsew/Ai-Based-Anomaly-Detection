@@ -1,0 +1,65 @@
+body {
+  background: #0b1220;
+  color: #e5e7eb;
+  font-family: "Inter", sans-serif;
+}
+
+/* Layout */
+.container {
+  padding: 20px;
+}
+
+/* Cards */
+.card {
+  background: #111827;
+  border-radius: 12px;
+  padding: 16px;
+  border: 1px solid #1f2937;
+}
+
+/* Grid */
+.grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+/* Table */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th {
+  text-align: left;
+  font-size: 12px;
+  color: #9ca3af;
+  padding: 10px;
+}
+
+.table td {
+  padding: 10px;
+  border-top: 1px solid #1f2937;
+}
+
+/* Severity */
+.severity-low {
+  color: #3b82f6;
+} /* blue */
+.severity-medium {
+  color: #f59e0b;
+} /* yellow */
+.severity-high {
+  color: #f97316;
+} /* orange */
+.severity-critical {
+  color: #ef4444;
+} /* red */
+
+/* Badge */
+.badge {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  background: #1f2937;
+}
