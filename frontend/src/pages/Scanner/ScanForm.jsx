@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { startScan } from "../../services/scanService";
+import { getToken } from "../../services/authService";
 
 export default function ScanForm({ onScanComplete }) {
   const [target, setTarget] = useState("");
@@ -10,41 +11,37 @@ export default function ScanForm({ onScanComplete }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
 
-    if (!target) {
-      setError("Target is required");
+    if (!getToken()) {
+      setError("Please login to start a scan");
       return;
     }
 
-    setError("");
-    setSuccess("");
+    if (!target || !scanType) {
+      setError("Target and scan type are required");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const response = await startScan({
-        target,
-        scan_type: scanType,
-      });
-
-      // 🔥 Get scan data from response
-      const scan = response?.data || response?.result || null;
-
-      if (scan) {
-        // ✅ Callback to parent to update selected scan
-        if (onScanComplete) onScanComplete(scan);
-
-        setSuccess(`Scan started for target: ${scan.target || target}`);
-        setTarget("");
-      } else {
-        console.warn("⚠️ Scan data not found in response");
-        setError("Scan started but no data returned.");
-      }
+      const data = await startScan({ target, scan_type: scanType });
+      onScanComplete?.(data);
+      setTarget("");
+      setScanType("network");
+      setSuccess("Scan started successfully!");
     } catch (err) {
-      console.error(err);
-      setError("Scan failed. Check backend logs.");
+      console.error("Scan error:", err);
+      // Don't show auth errors as they're handled by interceptor
+      if (err.response?.status !== 401) {
+        const message =
+          err.response?.data?.error || "Scan failed. Please try again.";
+        setError(message);
+      }
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   const getButtonStyle = (type) => ({

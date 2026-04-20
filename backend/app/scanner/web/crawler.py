@@ -2,6 +2,39 @@ import requests
 from bs4 import BeautifulSoup
 
 
+def crawl(target):
+    """Simple crawler that returns URLs found on the target"""
+    urls = []
+    
+    try:
+        headers = {
+            "User-Agent": "Mozilla/5.0 (AI-Scanner/1.0)"
+        }
+        
+        response = requests.get(target, timeout=10, headers=headers)
+        soup = BeautifulSoup(response.text, "html.parser")
+        
+        # Extract links
+        for link in soup.find_all("a", href=True):
+            href = link["href"]
+            if href.startswith("http"):
+                urls.append(href)
+            elif href.startswith("/"):
+                # Convert relative URLs to absolute
+                from urllib.parse import urljoin
+                urls.append(urljoin(target, href))
+        
+        # Remove duplicates and limit
+        urls = list(set(urls))[:50]
+        
+    except Exception as e:
+        print(f"Crawler error: {e}")
+        # Return the target URL as fallback
+        urls = [target]
+    
+    return urls
+
+
 def run_web_scan(target):
     findings = []
 

@@ -22,7 +22,7 @@ def start_scan():
             return jsonify({"error": "Target is required"}), 400
 
         # ✅ GET USER
-        user_id = int(get_jwt_identity())
+        user_id = int(get_jwt_identity())  # Convert string back to int
 
         # 📝 AUDIT LOG — user started a scan
         log_action(
@@ -54,7 +54,7 @@ def start_scan():
 @jwt_required()
 def scan_history():
     try:
-        user_id = int(get_jwt_identity())
+        user_id = int(get_jwt_identity())  # Convert string back to int
 
         history = get_scan_history(user_id)
 
@@ -104,7 +104,7 @@ def discover():
 @jwt_required()
 def get_scan(scan_id):
     try:
-        user_id = int(get_jwt_identity())
+        user_id = int(get_jwt_identity())  # Convert string back to int
 
         from app.models.scan_model import Scan
 

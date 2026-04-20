@@ -3,12 +3,14 @@ from app import db, socketio
 from app.services.alert_service import create_alert
 
 # =========================
-# SAFE IMPORTS
+# 🔥 SCANNER MODULES
 # =========================
 try:
     from app.scanner.network.port_scan import run_port_scan
-except:
+    from app.scanner.network.enhanced_port_scan import run_enhanced_port_scan
+except ImportError:
     run_port_scan = None
+    run_enhanced_port_scan = None
 
 try:
     from app.scanner.network.service_detection import detect_services
@@ -24,6 +26,12 @@ try:
     from app.scanner.web.service import run_web_scan
 except:
     run_web_scan = None
+
+# Import fallback scanner
+try:
+    from app.scanner.fallback_scanner import run_fallback_scan
+except:
+    run_fallback_scan = None
 
 
 # =========================
@@ -109,12 +117,27 @@ def run_scan(target, scan_type, user_id):
         # =========================
         if scan_type == "network":
 
-            update_progress(scan, 10, "Port scanning started")
+            update_progress(scan, 10, "Scanning network ports")
 
-            if run_port_scan:
-                result["open_ports"] = run_port_scan(target)
+            # Use enhanced port scan for detailed results
+            if run_enhanced_port_scan:
+                network_data = run_enhanced_port_scan(target)
+                result["open_ports"] = network_data.get("open_ports", [])
+                result["services"] = network_data.get("services", [])
+                result["findings"] = network_data.get("findings", [])
+            elif run_port_scan:
+                # Fallback to basic port scan
+                ports = run_port_scan(target)
+                result["open_ports"] = ports
+                result["services"] = []
+                result["findings"] = []
+            else:
+                # Use fallback scanner
+                update_progress(scan, 20, "Using fallback network scanner")
+                fallback_data = run_fallback_scan(target, "network") if run_fallback_scan else {"open_ports": [], "services": [], "findings": []}
+                result.update(fallback_data)
 
-            update_progress(scan, 40, "Service detection")
+            update_progress(scan, 70, "Analyzing network services")
 
             if detect_services:
                 svc = detect_services(target)
@@ -137,9 +160,16 @@ def run_scan(target, scan_type, user_id):
                 system_data = run_system_scan(target)
 
                 if isinstance(system_data, dict):
-                    result["os_info"] = system_data.get("os_info", {})
-                    result["services"] = system_data.get("services", [])
+                    result["os_info"] = system_data.get("system_data", {}).get("os_info", {})
+                    result["services"] = system_data.get("system_data", {}).get("services", [])
                     result["findings"] = system_data.get("findings", [])
+                    # Add system-specific data for better reporting
+                    result["system_data"] = system_data.get("system_data", {})
+            else:
+                # Use fallback scanner
+                update_progress(scan, 20, "Using fallback system scanner")
+                fallback_data = run_fallback_scan(target, "system") if run_fallback_scan else {"findings": [], "system_data": {}}
+                result.update(fallback_data)
 
             update_progress(scan, 70, "Analyzing system configuration")
 
@@ -159,11 +189,19 @@ def run_scan(target, scan_type, user_id):
 
                 result["web_scan"] = web_data
                 result["findings"] = web_data.get("findings", [])
+                result["vulnerabilities"] = web_data.get("vulnerabilities", [])
                 result["risk"] = web_data.get("risk", {
                     "score": 0,
                     "level": "LOW",
                     "explanation": ""
                 })
+                # Add web-specific data
+                result["total_urls_scanned"] = web_data.get("total_urls_scanned", 0)
+            else:
+                # Use fallback scanner
+                update_progress(scan, 20, "Using fallback web scanner")
+                fallback_data = run_fallback_scan(target, "web") if run_fallback_scan else {"findings": [], "risk": {"score": 0, "level": "LOW"}}
+                result.update(fallback_data)
 
             update_progress(scan, 85, "Analyzing vulnerabilities")
 
@@ -230,6 +268,26 @@ def run_scan(target, scan_type, user_id):
 
         update_progress(scan, 100, "Scan completed", "completed")
 
+        # Commit to database before emitting
+        try:
+            db.session.commit()
+            print(f"✅ Scan {scan.id} committed to database")
+        except Exception as commit_error:
+            print(f"❌ Database commit error: {commit_error}")
+            db.session.rollback()
+
+        # ✅ FINAL STEP: EMIT COMPLETION FOR REAL-TIME UPDATES
+        socketio.emit("scan_completed", {
+            "scan_id": scan.id,
+            "target": target,
+            "scan_type": scan_type,
+            "status": "completed",
+            "progress": 100,
+            "findings": result.get("findings", []),
+            "risk": result.get("risk", {}),
+            "timestamp": scan.created_at.isoformat() if scan.created_at else datetime.utcnow().isoformat()
+        })
+
     except Exception as e:
         print("🔥 SCAN ERROR:", str(e))
 
@@ -244,7 +302,7 @@ def run_scan(target, scan_type, user_id):
 
 
 # =========================
-# 📜 HISTORY (READY FOR USER FILTER)
+# � HISTORY (READY FOR USER FILTER)
 # =========================
 def get_scan_history(user_id=None):
     try:

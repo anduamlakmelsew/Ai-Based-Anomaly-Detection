@@ -4,6 +4,7 @@ import ScanForm from "./ScanForm";
 import ScanHistory from "./ScanHistory";
 import ScanResult from "./ScanResult";
 import { discoverHosts } from "../../services/scanService";
+import { getToken } from "../../services/authService";
 
 // 🔴 Safe socket initialization
 let socket;
@@ -40,6 +41,12 @@ export default function ScannerPage() {
   const handleDiscover = async () => {
     if (!range) {
       setDiscoverError("IP range is required");
+      return;
+    }
+
+    // Check authentication first
+    if (!getToken()) {
+      setDiscoverError("Please login first to use network discovery");
       return;
     }
 
@@ -162,7 +169,7 @@ export default function ScannerPage() {
           )}
         </div>
 
-        {liveScan && (
+        {liveScan && liveScan.status !== "completed" && liveScan.status !== "failed" && liveScan.status !== "cancelled" && (
           <div
             style={{
               marginTop: "20px",

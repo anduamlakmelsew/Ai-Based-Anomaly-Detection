@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useTheme } from "../../context/ThemeContext";
+import api from "../../services/api";
 
 export default function ForgotPassword() {
   const { theme } = useTheme();
@@ -10,11 +11,13 @@ export default function ForgotPassword() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState("");
+  const [tempPassword, setTempPassword] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setSuccess("");
+    setTempPassword("");
 
     if (!email) {
       return setError("Email is required");
@@ -22,11 +25,22 @@ export default function ForgotPassword() {
 
     try {
       setLoading(true);
-      await new Promise((resolve) => setTimeout(resolve, 1200)); // simulate API
-      setSuccess("Password reset instructions sent to your email.");
-      setEmail("");
-    } catch {
-      setError("Failed to send reset instructions. Try again.");
+      const response = await api.post("/auth/forgot-password", { email });
+      
+      if (response.data.success) {
+        setSuccess(response.data.message);
+        // Show temp password if returned (for demo purposes)
+        if (response.data.temp_password) {
+          setTempPassword(response.data.temp_password);
+        }
+        setEmail("");
+      } else {
+        setError(response.data.message || "Failed to process request.");
+      }
+    } catch (err) {
+      console.error("Forgot password error:", err);
+      const message = err.response?.data?.error || err.response?.data?.message || "Failed to send reset instructions. Try again.";
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -60,6 +74,34 @@ export default function ForgotPassword() {
         {error && <p style={{ color: "red", textAlign: "center" }}>{error}</p>}
         {success && (
           <p style={{ color: "green", textAlign: "center" }}>{success}</p>
+        )}
+        {tempPassword && (
+          <div style={{
+            padding: "15px",
+            backgroundColor: darkMode ? "#1e3a5f" : "#dbeafe",
+            borderRadius: "8px",
+            border: "2px solid #2563eb",
+            textAlign: "center"
+          }}>
+            <p style={{ margin: "0 0 10px 0", fontWeight: "bold", color: darkMode ? "#93c5fd" : "#1e40af" }}>
+              Your Temporary Password:
+            </p>
+            <code style={{
+              display: "block",
+              padding: "10px",
+              backgroundColor: darkMode ? "#0f172a" : "#f3f4f6",
+              borderRadius: "4px",
+              fontSize: "16px",
+              fontFamily: "monospace",
+              color: darkMode ? "#f1f5f9" : "#111",
+              wordBreak: "break-all"
+            }}>
+              {tempPassword}
+            </code>
+            <p style={{ margin: "10px 0 0 0", fontSize: "12px", color: darkMode ? "#94a3b8" : "#6b7280" }}>
+              Please copy this password and login immediately. Change it after logging in.
+            </p>
+          </div>
         )}
 
         {/* Email */}

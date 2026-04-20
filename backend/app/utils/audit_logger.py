@@ -7,10 +7,12 @@ def log_action(action, user_id=None, description=None):
     """
     Store an audit log entry.
     """
+    # Include description in the action if provided
+    action_text = f"{action}: {description}" if description else action
+    
     log = Log(
-        action=action,
+        action=action_text,
         user_id=user_id,
-        description=description,
         created_at=datetime.utcnow()
     )
 

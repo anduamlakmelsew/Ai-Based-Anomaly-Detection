@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
 import { useTheme } from "../../context/ThemeContext";
@@ -15,6 +15,13 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
 
   const darkMode = theme === "dark";
+
+  // Clear form on mount to prevent credential retention after logout
+  useEffect(() => {
+    setForm({ username: "", password: "" });
+    setError("");
+    setShowPassword(false);
+  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();

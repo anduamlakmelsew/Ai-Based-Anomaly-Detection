@@ -50,7 +50,7 @@ def create_app():
     app.register_blueprint(user_bp)
 
     from app.routes.audit_routes import audit_bp
-    app.register_blueprint(audit_bp)
+    app.register_blueprint(audit_bp, url_prefix="/api/audit")
 
     from app.routes.alert_routes import alert_bp
     app.register_blueprint(alert_bp)
@@ -68,6 +68,11 @@ def create_app():
             seed_database(app)
         except Exception as e:
             print("⚠️ Seed skipped:", e)
+
+    # ========================
+    # REGISTER SOCKET EVENTS
+    # ========================
+    from app import socket_events
 
     # ========================
     # HEALTH CHECK

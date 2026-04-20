@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getScanHistory } from "../../services/scanService";
+import { getToken } from "../../services/authService";
 
 const ScanHistory = ({ onSelectScan }) => {
   const [history, setHistory] = useState([]);
@@ -12,6 +13,13 @@ const ScanHistory = ({ onSelectScan }) => {
     const fetchHistory = async () => {
       setLoading(true);
       setError(null);
+
+      // Check authentication first
+      if (!getToken()) {
+        setError("Please login first to view scan history");
+        setLoading(false);
+        return;
+      }
 
       try {
         const response = await getScanHistory();

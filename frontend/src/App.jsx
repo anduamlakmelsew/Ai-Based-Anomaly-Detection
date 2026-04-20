@@ -1,46 +1,38 @@
-import {
-  BrowserRouter as Router,
-  Routes,
-  Route,
-  Navigate,
-} from "react-router-dom";
+import React from "react";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider, useAuth } from "./contexts/AuthProvider";
 
-import { AuthProvider, useAuth } from "./context/AuthContext";
-import { ThemeProvider } from "./context/ThemeContext";
+// Components
+import ProtectedRoute from "./components/ProtectedRoute";
 
-import Navbar from "./components/layout/Navbar";
-import Sidebar from "./components/layout/Sidebar";
-
-// Auth Pages
+// Pages
 import Login from "./pages/Auth/Login";
+import EnhancedLogin from "./pages/Auth/EnhancedLogin";
 import Register from "./pages/Auth/Register";
 import ForgotPassword from "./pages/Auth/ForgotPassword";
-
-// Dashboard
 import Dashboard from "./pages/Dashboard/Dashboard";
-
-// Scanner
+import EnhancedDashboard from "./pages/Dashboard/EnhancedDashboard";
 import ScannerPage from "./pages/Scanner/ScannerPage";
+import EnhancedScannerPage from "./pages/Scanner/EnhancedScannerPage";
 import ScanForm from "./pages/Scanner/ScanForm";
 import ScanHistory from "./pages/Scanner/ScanHistory";
 import ScanResult from "./pages/Scanner/ScanResult";
+import EnhancedScanResult from "./pages/Scanner/EnhancedScanResult";
 
 // Alerts
 import AlertList from "./pages/Alerts/AlertList";
+import EnhancedAlertList from "./pages/Alerts/EnhancedAlertList";
 import IncidentDetails from "./pages/Alerts/IncidentDetails";
 
 // Anomalies
 import AnomalyDashboard from "./pages/Anomalies/AnomalyDashboard";
+import EnhancedAnomalyDashboard from "./pages/Anomalies/EnhancedAnomalyDashboard";
 import ModelPerformance from "./pages/Anomalies/ModelPerformance";
 import TrafficGraph from "./pages/Anomalies/TrafficGraph";
 
-// Baseline
-import BaselineOverview from "./pages/Baseline/BaselineOverview";
-import BaselineVersioning from "./pages/Baseline/BaselineVersioning";
-import ComplianceStandards from "./pages/Baseline/ComplianceStandards";
-
 // Reports
 import ReportGenerator from "./pages/Reports/ReportGenerator";
+import EnhancedReportGenerator from "./pages/Reports/EnhancedReportGenerator";
 import ReportHistory from "./pages/Reports/ReportHistory";
 
 // Settings
@@ -49,217 +41,184 @@ import NotificationSettings from "./pages/Settings/NotificationSettings";
 import SecuritySettings from "./pages/Settings/SecuritySettings";
 import UserSettings from "./pages/Settings/UserSettings";
 
-const ProtectedRoute = ({ children }) => {
-  const { user } = useAuth();
-  return user ? children : <Navigate to="/login" />;
-};
+const AppContent = () => {
+  const { isAuthenticated, loading } = useAuth();
 
-function AppContent() {
-  const { user } = useAuth();
-
-  if (!user) {
-    // 🔐 NOT LOGGED IN
+  if (loading) {
     return (
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="*" element={<Navigate to="/login" />} />
-      </Routes>
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '100vh',
+        background: '#0f172a',
+        color: '#fff'
+      }}>
+        <div>Loading...</div>
+      </div>
     );
   }
 
-  // 🔓 LOGGED IN
   return (
-    <div className="app-layout">
-      <Navbar />
-      <div style={{ display: "flex" }}>
-        <Sidebar />
-        <div style={{ flex: 1, padding: "20px" }}>
-          <Routes>
-            {/* Dashboard */}
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              }
-            />
+    <Router>
+      <Routes>
+        {/* Public Routes */}
+        <Route path="/login" element={<EnhancedLogin />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
-            {/* Scanner */}
-            <Route
-              path="/scanner"
-              element={
-                <ProtectedRoute>
-                  <ScannerPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/scanner/form"
-              element={
-                <ProtectedRoute>
-                  <ScanForm />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/scanner/history"
-              element={
-                <ProtectedRoute>
-                  <ScanHistory />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/scanner/result/:id"
-              element={
-                <ProtectedRoute>
-                  <ScanResult />
-                </ProtectedRoute>
-              }
-            />
+        {/* Protected Routes */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <EnhancedDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/scanner"
+          element={
+            <ProtectedRoute>
+              <EnhancedScannerPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/scanner/form"
+          element={
+            <ProtectedRoute>
+              <ScanForm />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/scanner/history"
+          element={
+            <ProtectedRoute>
+              <ScanHistory />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/scanner/result/:id"
+          element={
+            <ProtectedRoute>
+              <ScanResult />
+            </ProtectedRoute>
+          }
+        />
 
-            {/* Alerts */}
-            <Route
-              path="/alerts"
-              element={
-                <ProtectedRoute>
-                  <AlertList />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/alerts/:id"
-              element={
-                <ProtectedRoute>
-                  <IncidentDetails />
-                </ProtectedRoute>
-              }
-            />
+        {/* Alerts */}
+        <Route
+          path="/alerts"
+          element={
+            <ProtectedRoute>
+              <EnhancedAlertList />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/alerts/:id"
+          element={
+            <ProtectedRoute>
+              <IncidentDetails />
+            </ProtectedRoute>
+          }
+        />
 
-            {/* Anomalies */}
-            <Route
-              path="/anomalies"
-              element={
-                <ProtectedRoute>
-                  <AnomalyDashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/anomalies/model-performance"
-              element={
-                <ProtectedRoute>
-                  <ModelPerformance />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/anomalies/traffic-graph"
-              element={
-                <ProtectedRoute>
-                  <TrafficGraph />
-                </ProtectedRoute>
-              }
-            />
+        {/* Anomalies */}
+        <Route
+          path="/anomalies"
+          element={
+            <ProtectedRoute>
+              <EnhancedAnomalyDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/anomalies/model-performance"
+          element={
+            <ProtectedRoute>
+              <ModelPerformance />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/anomalies/traffic-graph"
+          element={
+            <ProtectedRoute>
+              <TrafficGraph />
+            </ProtectedRoute>
+          }
+        />
 
-            {/* Baseline */}
-            <Route
-              path="/baseline/overview"
-              element={
-                <ProtectedRoute>
-                  <BaselineOverview />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/baseline/versioning"
-              element={
-                <ProtectedRoute>
-                  <BaselineVersioning />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/baseline/compliance"
-              element={
-                <ProtectedRoute>
-                  <ComplianceStandards />
-                </ProtectedRoute>
-              }
-            />
+        {/* Reports */}
+        <Route
+          path="/reports/generator"
+          element={
+            <ProtectedRoute>
+              <EnhancedReportGenerator />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/reports/history"
+          element={
+            <ProtectedRoute>
+              <ReportHistory />
+            </ProtectedRoute>
+          }
+        />
 
-            {/* Reports */}
-            <Route
-              path="/reports/generator"
-              element={
-                <ProtectedRoute>
-                  <ReportGenerator />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/reports/history"
-              element={
-                <ProtectedRoute>
-                  <ReportHistory />
-                </ProtectedRoute>
-              }
-            />
+        {/* Settings */}
+        <Route
+          path="/settings/admin"
+          element={
+            <ProtectedRoute>
+              <AdminSettings />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings/notifications"
+          element={
+            <ProtectedRoute>
+              <NotificationSettings />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings/security"
+          element={
+            <ProtectedRoute>
+              <SecuritySettings />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings/user"
+          element={
+            <ProtectedRoute>
+              <UserSettings />
+            </ProtectedRoute>
+          }
+        />
 
-            {/* Settings */}
-            <Route
-              path="/settings/admin"
-              element={
-                <ProtectedRoute>
-                  <AdminSettings />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/settings/notifications"
-              element={
-                <ProtectedRoute>
-                  <NotificationSettings />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/settings/security"
-              element={
-                <ProtectedRoute>
-                  <SecuritySettings />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/settings/user"
-              element={
-                <ProtectedRoute>
-                  <UserSettings />
-                </ProtectedRoute>
-              }
-            />
-
-            {/* Catch all */}
-            <Route path="*" element={<Navigate to="/dashboard" />} />
-          </Routes>
-        </div>
-      </div>
-    </div>
+        {/* Fallback */}
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      </Routes>
+    </Router>
   );
-}
+};
 
-export default function App() {
+function App() {
   return (
     <AuthProvider>
-      <ThemeProvider>
-        <Router>
-          <AppContent />
-        </Router>
-      </ThemeProvider>
+      <AppContent />
     </AuthProvider>
   );
 }
+
+export default App;

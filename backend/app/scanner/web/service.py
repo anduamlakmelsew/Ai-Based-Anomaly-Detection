@@ -1,7 +1,7 @@
 import requests
 from .injection import run_injection_tests
-
 from .crawler import crawl
+from .enhanced_web_checks import run_enhanced_web_checks
 
 # OWASP Checks
 from .checks.access_control import check_access_control
@@ -74,7 +74,7 @@ def run_web_scan(target, mode="active"):
         urls = [target]
 
     # -----------------------------
-    # 4. Active Scanning
+    # 4. Enhanced Security Scanning
     # -----------------------------
     
     if mode in ["active", "internal"]:
@@ -82,9 +82,14 @@ def run_web_scan(target, mode="active"):
         findings += check_idor(urls)
         findings += check_authentication(urls)
         findings += check_crypto(urls)
+        
+        # Enhanced web security checks
+        enhanced_findings = run_enhanced_web_checks(target)
+        findings.extend(enhanced_findings)
+        
         # Injection tests (🔥 VERY IMPORTANT)
-    for url in urls:
-        findings += run_injection_tests(url)
+        for url in urls:
+            findings += run_injection_tests(url)
     
 
     # -----------------------------

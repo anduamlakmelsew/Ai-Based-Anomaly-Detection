@@ -13,7 +13,7 @@ def get_logs():
   """
   Return recent audit log entries for the current user.
   """
-  user_id = int(get_jwt_identity())
+  user_id = int(get_jwt_identity())  # Convert string back to int
 
   logs = (
       Log.query.filter_by(user_id=user_id)

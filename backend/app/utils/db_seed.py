@@ -18,8 +18,10 @@ def seed_database(app):
             email="admin@test.com",
             role="admin"
         )
-        admin.set_password("admin123")
         db.session.add(admin)
+
+    # Always reset admin password to default for demo purposes
+    admin.set_password("admin123")
 
     # =========================
     # SETTINGS
