@@ -1,0 +1,1 @@
+["user_count", "admin_count", "suspicious_users", "service_count", "insecure_services", "exposed_services", "package_count", "outdated_packages", "process_count", "suspicious_processes", "total_vulns", "critical_vulns", "high_vulns", "medium_vulns", "low_vulns", "open_ports", "firewall_enabled", "is_linux", "is_windows"]

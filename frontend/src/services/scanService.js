@@ -16,7 +16,8 @@ export const startScan = async (data) => {
 export const getScanHistory = async () => {
   try {
     const res = await api.get("/scan/history");
-    return res.data;
+    // API returns { success: true, data: [...] }, extract the data array
+    return res.data?.data || [];
   } catch (err) {
     console.error("History error:", err);
     throw err;

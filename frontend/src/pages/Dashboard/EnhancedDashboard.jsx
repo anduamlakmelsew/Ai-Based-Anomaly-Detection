@@ -2,21 +2,59 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { getScanHistory } from "../../services/scanService";
+import { getDashboardStats, getActivityFeed } from "../../services/dashboardService";
 import { getToken, logout } from "../../services/authService";
 import { io } from "socket.io-client";
 import EnhancedRiskScoreCard from "./EnhancedRiskScoreCard";
 import EnhancedActivityLog from "./EnhancedActivityLog";
 import EnhancedTrafficChart from "./EnhancedTrafficChart";
 import EnhancedVulnerabilityPanel from "./EnhancedVulnerabilityPanel";
+import AIEventsPanel from "./AIEventsPanel";
 
-// Socket connection
-let socket;
+// Helper functions
+const getScanTypeColor = (type) => {
+  switch (type?.toLowerCase()) {
+    case 'network': return '#3b82f6';
+    case 'system': return '#8b5cf6';
+    case 'web': return '#06b6d4';
+    default: return '#6b7280';
+  }
+};
+
+const getSeverityColor = (severity) => {
+  switch (severity?.toUpperCase()) {
+    case 'CRITICAL': return '#ef4444';
+    case 'HIGH': return '#f97316';
+    case 'MEDIUM': return '#eab308';
+    case 'LOW': return '#22c55e';
+    default: return '#6b7280';
+  }
+};
+
+const formatDate = (timestamp) => {
+  if (!timestamp) return 'N/A';
+  const date = new Date(timestamp);
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+};
+
+// Socket connection with fallback
+let socket = null;
+
 try {
-  socket = io("http://127.0.0.1:5000", {
+  socket = io("http://127.0.0.1:5003", {
     transports: ["websocket", "polling"],
+    reconnection: true,
+    reconnectionDelay: 1000,
+    reconnectionAttempts: 3
   });
 } catch (err) {
-  console.warn("Socket failed:", err);
+  console.warn("⚠️ WebSocket initialization failed:", err);
+  socket = null;
 }
 
 export default function EnhancedDashboard() {
@@ -39,27 +77,50 @@ export default function EnhancedDashboard() {
       return;
     }
 
+    // Initial data load
     loadData();
 
+    // Setup WebSocket listeners if available
     if (socket) {
+      socket.on("connect", () => {
+        console.log("✅ WebSocket connected");
+        setSocketConnected(true);
+      });
+      
+      socket.on("disconnect", () => {
+        console.warn("⚠️ WebSocket disconnected");
+        setSocketConnected(false);
+      });
+      
+      socket.on("connect_error", (error) => {
+        console.warn("⚠️ WebSocket connection failed:", error.message);
+        setSocketConnected(false);
+      });
+
       socket.on("scan_progress", (data) => {
+        console.log("📡 Received scan_progress:", data);
         setLiveScan(data);
 
         if (data.status === "completed") {
-          // Immediately refresh data when scan completes
+          // Refresh data when scan completes
           setTimeout(() => loadData(), 500);
         }
       });
 
       // Listen for new scans to update dashboard
       socket.on("scan_completed", (data) => {
-        console.log("New scan completed, updating dashboard:", data);
+        console.log("✅ Scan completed, updating dashboard:", data);
         loadData();
       });
+    } else {
+      console.warn("⚠️ WebSocket not available - use manual refresh button");
     }
 
     return () => {
       if (socket) {
+        socket.off("connect");
+        socket.off("disconnect");
+        socket.off("connect_error");
         socket.off("scan_progress");
         socket.off("scan_completed");
       }
@@ -121,15 +182,34 @@ export default function EnhancedDashboard() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const data = await getScanHistory();
-      setScans(Array.isArray(data) ? data : []);
+      console.log("📊 Loading dashboard data...");
+      
+      // Try dashboard stats API first for better aggregated data
+      let dashboardData = null;
+      try {
+        const statsRes = await getDashboardStats();
+        if (statsRes?.success && statsRes.data) {
+          dashboardData = statsRes.data;
+          console.log("✅ Dashboard stats loaded:", dashboardData);
+        }
+      } catch (statsErr) {
+        console.warn("Dashboard stats API failed, falling back to scan history:", statsErr);
+      }
+      
+      // Always load scan history for the list and charts
+      const scanData = await getScanHistory();
+      console.log(`✅ Loaded ${scanData.length} scans from history`);
+      setScans(Array.isArray(scanData) ? scanData : []);
+      
+      // Log findings count for debugging
+      const totalFindings = scanData.reduce((sum, s) => sum + (s.findings?.length || 0), 0);
+      console.log(`📈 Total findings: ${totalFindings}`);
+      
     } catch (err) {
-      console.error("Failed to load scans:", err);
+      console.error("❌ Failed to load dashboard data:", err);
       setScans([]);
-      // If it's an authentication error, the API interceptor will handle redirect
       if (err.response?.status !== 401) {
-        // Show error only for non-auth errors
-        console.error("Non-auth error loading scans:", err);
+        console.error("Non-auth error:", err);
       }
     } finally {
       setLoading(false);
@@ -228,29 +308,66 @@ export default function EnhancedDashboard() {
           🛡️ Security Command Center
         </h2>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-          <p style={{ color: "#94a3b8", margin: 0 }}>
-            Real-time security monitoring and vulnerability assessment
-          </p>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => {
-              logout();
-            }}
-            style={{
-              padding: "8px 16px",
-              background: "linear-gradient(135deg, #ef4444, #dc2626)",
-              color: "#fff",
-              border: "none",
-              borderRadius: "8px",
-              cursor: "pointer",
-              fontSize: "14px",
-              fontWeight: "500",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.2)"
-            }}
-          >
-            🚪 Logout
-          </motion.button>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <p style={{ color: "#94a3b8", margin: 0 }}>
+              Real-time security monitoring and vulnerability assessment
+            </p>
+            {socketConnected && (
+              <span style={{
+                padding: "4px 8px",
+                background: "#22c55e",
+                color: "#fff",
+                borderRadius: "4px",
+                fontSize: "12px",
+                fontWeight: "500"
+              }}>
+                🟢 Live
+              </span>
+            )}
+          </div>
+          <div style={{ display: "flex", gap: "10px" }}>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => {
+                console.log("🔄 Manual refresh triggered");
+                loadData();
+              }}
+              style={{
+                padding: "8px 16px",
+                background: "linear-gradient(135deg, #3b82f6, #2563eb)",
+                color: "#fff",
+                border: "none",
+                borderRadius: "8px",
+                cursor: "pointer",
+                fontSize: "14px",
+                fontWeight: "500",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.2)"
+              }}
+            >
+              🔄 Refresh
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => {
+                logout();
+              }}
+              style={{
+                padding: "8px 16px",
+                background: "linear-gradient(135deg, #ef4444, #dc2626)",
+                color: "#fff",
+                border: "none",
+                borderRadius: "8px",
+                cursor: "pointer",
+                fontSize: "14px",
+                fontWeight: "500",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.2)"
+              }}
+            >
+              🚪 Logout
+            </motion.button>
+          </div>
         </div>
       </motion.div>
 
@@ -557,11 +674,21 @@ export default function EnhancedDashboard() {
         </motion.div>
       </motion.div>
 
-      {/* Traffic Chart */}
+      {/* AI Events Panel */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}
+        style={{ marginTop: "20px" }}
+      >
+        <AIEventsPanel />
+      </motion.div>
+
+      {/* Traffic Chart */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.6 }}
         style={{ marginTop: "20px" }}
       >
         <motion.div

@@ -44,6 +44,13 @@ class Scan(db.Model):
         nullable=False
     )  # 0 → 100
 
+    # Celery async task tracking
+    celery_task_id = db.Column(
+        db.String(255),
+        nullable=True,
+        index=True
+    )
+
     # =========================
     # 📦 FULL RESULT (SOURCE OF TRUTH)
     # =========================
@@ -114,6 +121,7 @@ class Scan(db.Model):
             "scan_type": self.scan_type,
             "status": self.status,
             "progress": self.progress,
+            "celery_task_id": self.celery_task_id,
             "date": self.created_at.isoformat(),
 
             # 🔥 dashboard-critical fields
@@ -123,4 +131,20 @@ class Scan(db.Model):
                 "level": data.get("risk_analysis", {}).get("risk_level", "LOW")
             },
             "total_urls_scanned": data.get("total_urls_scanned", 0)
+        }
+
+    def to_task_status_dict(self):
+        """
+        Return scan status suitable for Celery task status endpoint
+        """
+        return {
+            "scan_id": self.id,
+            "celery_task_id": self.celery_task_id,
+            "target": self.target,
+            "scan_type": self.scan_type,
+            "status": self.status,
+            "progress": self.progress,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "result": self.result if self.status in ["completed", "failed"] else None
         }

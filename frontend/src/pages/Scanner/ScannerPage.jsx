@@ -7,13 +7,35 @@ import { discoverHosts } from "../../services/scanService";
 import { getToken } from "../../services/authService";
 
 // 🔴 Safe socket initialization
-let socket;
+// Socket connection with fallback
+let socket = null;
+let socketConnected = false;
+
 try {
-  socket = io("http://127.0.0.1:5000", {
+  socket = io("http://127.0.0.1:5003", {
     transports: ["websocket", "polling"],
+    reconnection: true,
+    reconnectionDelay: 1000,
+    reconnectionAttempts: 3
+  });
+  
+  socket.on("connect", () => {
+    console.log("✅ WebSocket connected");
+    socketConnected = true;
+  });
+  
+  socket.on("disconnect", () => {
+    console.warn("⚠️ WebSocket disconnected");
+    socketConnected = false;
+  });
+  
+  socket.on("connect_error", (error) => {
+    console.warn("⚠️ WebSocket connection failed, using HTTP polling fallback:", error.message);
+    socketConnected = false;
   });
 } catch (err) {
-  console.warn("Socket failed:", err);
+  console.warn("⚠️ WebSocket initialization failed, using HTTP polling fallback:", err);
+  socket = null;
 }
 
 export default function ScannerPage() {

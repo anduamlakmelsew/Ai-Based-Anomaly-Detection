@@ -46,6 +46,11 @@ export default function Sidebar() {
         Dashboard
       </Link>
 
+      {/* AI Security Lab */}
+      <Link to="/ai-lab" style={linkStyle("/ai-lab")}>
+        🧪 AI Security Lab
+      </Link>
+
       {/* Scanner */}
       <div style={{ marginTop: "15px" }}>
         <div

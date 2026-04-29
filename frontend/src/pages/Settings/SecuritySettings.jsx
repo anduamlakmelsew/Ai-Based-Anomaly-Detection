@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import MainLayout from "../../components/layout/MainLayout";
+import { changePassword } from "../../services/settingsService";
 
 export default function SecuritySettings() {
   const [passwordData, setPasswordData] = useState({
@@ -8,17 +9,49 @@ export default function SecuritySettings() {
     newPassword: "",
     confirmPassword: "",
   });
+  const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
+    setMessage("");
+    
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      setMessage("Passwords do not match");
+      setError("New passwords do not match");
       return;
     }
-    setMessage("Password updated (demo mode)");
-    setTimeout(() => setMessage(""), 3000);
-    setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" });
+    
+    if (passwordData.newPassword.length < 8) {
+      setError("Password must be at least 8 characters long");
+      return;
+    }
+    
+    setLoading(true);
+    
+    try {
+      const response = await changePassword(
+        passwordData.currentPassword,
+        passwordData.newPassword
+      );
+      
+      if (response.success) {
+        setMessage("Password changed successfully!");
+        setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" });
+      } else {
+        setError(response.error || "Failed to change password");
+      }
+    } catch (err) {
+      console.error("Change password error:", err);
+      setError(err.response?.data?.error || "Failed to change password");
+    } finally {
+      setLoading(false);
+      setTimeout(() => {
+        setMessage("");
+        setError("");
+      }, 3000);
+    }
   };
 
   const cardStyle = {
@@ -112,13 +145,20 @@ export default function SecuritySettings() {
             </div>
 
             {message && (
-              <div style={{ color: message.includes("not match") ? "#ef4444" : "#10b981", marginBottom: "10px" }}>
-                {message}
-              </div>
+              <div style={{ color: "#10b981", marginBottom: "10px" }}>{message}</div>
+            )}
+            {error && (
+              <div style={{ color: "#ef4444", marginBottom: "10px" }}>{error}</div>
             )}
 
-            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} type="submit" style={buttonStyle}>
-              🔑 Update Password
+            <motion.button 
+              whileHover={{ scale: 1.05 }} 
+              whileTap={{ scale: 0.95 }} 
+              type="submit" 
+              style={buttonStyle}
+              disabled={loading}
+            >
+              {loading ? "⏳ Updating..." : "🔑 Update Password"}
             </motion.button>
           </form>
         </div>

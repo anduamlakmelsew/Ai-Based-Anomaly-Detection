@@ -1,7 +1,10 @@
+import logging
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from app.models.user_model import User
 from app.services.auth_service import AuthService
+
+logger = logging.getLogger(__name__)
 
 # NOTE: The blueprint's URL prefix is configured when registering it in
 # `app/__init__.py` to avoid double-prefixing (e.g. `/api/auth/api/auth/...`).
@@ -15,7 +18,7 @@ auth_bp = Blueprint("auth", __name__)
 def register():
     try:
         data = request.get_json()
-        print("📥 Incoming registration request:", data)
+        logger.info("Incoming registration request")
 
         if not data:
             return jsonify({"error": "Invalid JSON"}), 400
@@ -28,7 +31,7 @@ def register():
             return jsonify(result), status_code
 
     except Exception as e:
-        print("❌ Registration ERROR:", str(e))
+        logger.error(f"Registration error: {str(e)}")
         return jsonify({
             "success": False,
             "error": str(e)
@@ -42,7 +45,7 @@ def register():
 def login():
     try:
         data = request.get_json()
-        print("📥 Incoming login request:", data)
+        logger.info("Incoming login request")
 
         if not data:
             return jsonify({"error": "Invalid JSON"}), 400
@@ -50,24 +53,23 @@ def login():
         username = data.get("username")
         password = data.get("password")
 
-        print("🔍 Username:", username)
-        print("🔍 Password provided:", bool(password))
+        logger.debug(f"Login attempt for username: {username}")
 
         if not username or not password:
             return jsonify({"error": "Username and password required"}), 400
 
         user = User.query.filter_by(username=username).first()
-        print("👤 User found:", user.username if user else "None")
+        logger.debug(f"User lookup result: {'found' if user else 'not found'}")
 
         # ✅ PROPER PASSWORD CHECK - NO MORE BYPASS
         if not user:
             return jsonify({"error": "User not found"}), 401
 
         if not user.check_password(password):
-            print("❌ Invalid password for user:", username)
+            logger.warning(f"Invalid password attempt for user: {username}")
             return jsonify({"error": "Invalid credentials"}), 401
 
-        print("✅ Login successful for user:", username)
+        logger.info(f"Login successful for user: {username}")
 
         access_token = create_access_token(
             identity=str(user.id),  # Convert to string for JWT
@@ -87,7 +89,7 @@ def login():
         }), 200
 
     except Exception as e:
-        print("❌ ERROR:", str(e))
+        logger.error(f"Login error: {str(e)}")
         return jsonify({
             "success": False,
             "error": str(e)
@@ -123,7 +125,7 @@ def refresh():
         }), 200
 
     except Exception as e:
-        print("❌ Refresh error:", str(e))
+        logger.error(f"Token refresh error: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 
@@ -134,7 +136,7 @@ def refresh():
 def forgot_password():
     try:
         data = request.get_json()
-        print("📥 Incoming forgot password request:", data)
+        logger.info("Incoming forgot password request")
 
         if not data:
             return jsonify({"error": "Invalid JSON"}), 400
@@ -148,7 +150,7 @@ def forgot_password():
         return jsonify(result), status_code
 
     except Exception as e:
-        print("❌ Forgot password ERROR:", str(e))
+        logger.error(f"Forgot password error: {str(e)}")
         return jsonify({
             "success": False,
             "error": str(e)

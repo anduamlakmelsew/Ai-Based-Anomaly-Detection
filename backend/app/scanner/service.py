@@ -1,4 +1,5 @@
 from datetime import datetime
+import logging
 
 # ✅ IMPORT YOUR REAL MODULES
 from app.scanner.network.service import run_network_scan
@@ -6,6 +7,11 @@ from app.scanner.web.service import run_web_scan
 from app.scanner.system.service import run_system_scan
 
 from app.scanner.vulnerability_intelligence.service import run as run_vuln_intel
+
+# 🔥 AI ANALYSIS
+from app.ai.pipeline import analyze_scan
+
+logger = logging.getLogger(__name__)
 
 
 def normalize_result(raw_result):
@@ -109,7 +115,23 @@ def run_scan(scan_type: str, target: str):
         }
 
         # ==============================
-        # 5. FINAL RESPONSE (FRONTEND READY)
+        # 5. AI ANALYSIS (NON-BLOCKING)
+        # ==============================
+        ai_analysis = None
+        try:
+            # Run AI analysis on raw scan result (includes metrics)
+            ai_analysis = analyze_scan(scan_type, raw_result)
+        except Exception as e:
+            # AI is optional - don't fail the scan if AI errors
+            logger.warning(f"AI analysis failed for {scan_type}: {str(e)}")
+            ai_analysis = {
+                "error": str(e),
+                "prediction": "unknown",
+                "confidence": 0.0
+            }
+
+        # ==============================
+        # 6. FINAL RESPONSE (FRONTEND READY)
         # ==============================
         final_result = {
             "success": True,
@@ -127,7 +149,10 @@ def run_scan(scan_type: str, target: str):
                 "risk_analysis": risk_analysis,
 
                 # 🔥 COVERAGE
-                "total_urls_scanned": normalized["total_urls_scanned"]
+                "total_urls_scanned": normalized["total_urls_scanned"],
+
+                # 🔥 AI ANALYSIS (optional)
+                "ai_analysis": ai_analysis
             }
         }
 

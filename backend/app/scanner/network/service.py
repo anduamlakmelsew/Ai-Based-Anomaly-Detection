@@ -1,3 +1,4 @@
+import time
 from .service_detection import detect_services
 from .vulnerability import scan_vulnerabilities
 
@@ -31,6 +32,8 @@ def calculate_risk(vulnerabilities):
 
 
 def run_network_scan(target):
+    start_time = time.time()
+
     try:
         # -----------------------------
         # 1. Detect services
@@ -52,6 +55,51 @@ def run_network_scan(target):
             }
 
         services = result.get("services", [])
+
+        # Calculate duration
+        duration = time.time() - start_time
+
+        # Calculate raw metrics for AI analysis
+        # Estimate bytes based on protocol handshakes
+        total_src_bytes = 0
+        total_dst_bytes = 0
+        protocol_counts = {"icmp": 0, "tcp": 0, "udp": 0}
+
+        for svc in services:
+            port = svc.get("port", 0)
+            protocol = svc.get("protocol", "tcp").lower()
+
+            # Count protocols
+            if protocol in protocol_counts:
+                protocol_counts[protocol] += 1
+
+            # Estimate bytes based on service type (handshake sizes)
+            if port in [80, 443, 8080, 8443]:  # HTTP/HTTPS
+                total_src_bytes += 1024
+                total_dst_bytes += 2048
+            elif port == 22:  # SSH
+                total_src_bytes += 512
+                total_dst_bytes += 1024
+            elif port in [21, 23]:  # FTP, Telnet
+                total_src_bytes += 256
+                total_dst_bytes += 512
+            elif port == 53:  # DNS
+                total_src_bytes += 128
+                total_dst_bytes += 256
+            elif port == 25:  # SMTP
+                total_src_bytes += 512
+                total_dst_bytes += 1024
+            else:
+                total_src_bytes += 200
+                total_dst_bytes += 400
+
+        raw_metrics = {
+            "duration_seconds": round(duration, 2),
+            "src_bytes": total_src_bytes,
+            "dst_bytes": total_dst_bytes,
+            "protocol_counts": protocol_counts,
+            "service_count": len(services)
+        }
 
         # -----------------------------
         # 2. Vulnerability scan
@@ -93,7 +141,10 @@ def run_network_scan(target):
             "total_urls": 0,
             "total_urls_scanned": 0,
 
-            "risk": risk
+            "risk": risk,
+
+            # 🔥 Raw metrics for AI analysis
+            "raw_metrics": raw_metrics
         }
 
     except Exception as e:
@@ -107,5 +158,12 @@ def run_network_scan(target):
                 "score": 0,
                 "level": "LOW"
             },
-            "error": str(e)
+            "error": str(e),
+            "raw_metrics": {
+                "duration_seconds": 0,
+                "src_bytes": 0,
+                "dst_bytes": 0,
+                "protocol_counts": {"icmp": 0, "tcp": 0, "udp": 0},
+                "service_count": 0
+            }
         }

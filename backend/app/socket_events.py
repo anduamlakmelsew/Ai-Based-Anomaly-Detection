@@ -1,7 +1,10 @@
+import logging
 from flask_socketio import emit
 from app import socketio
 from app.models.scan_model import Scan
 from app import db
+
+logger = logging.getLogger(__name__)
 
 @socketio.on('stop_scan')
 def handle_stop_scan(data):
@@ -42,10 +45,10 @@ def handle_stop_scan(data):
             'scan_type': scan.scan_type
         })
         
-        print(f"🛑 Scan {scan_id} stopped by user")
+        logger.info(f"Scan {scan_id} stopped by user")
         
     except Exception as e:
-        print(f"❌ Error stopping scan: {str(e)}")
+        logger.error(f"Error stopping scan: {str(e)}")
         emit('scan_stopped', {'success': False, 'message': f'Error stopping scan: {str(e)}'})
 
 @socketio.on('connect')
@@ -53,7 +56,7 @@ def handle_connect():
     """
     Handle client connection
     """
-    print('🔌 Client connected')
+    logger.info('Client connected')
     emit('connected', {'message': 'Connected to scanner server'})
 
 @socketio.on('disconnect')
@@ -61,4 +64,4 @@ def handle_disconnect():
     """
     Handle client disconnection
     """
-    print('🔌 Client disconnected')
+    logger.info('Client disconnected')

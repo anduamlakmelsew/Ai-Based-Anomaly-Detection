@@ -2,30 +2,67 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "../../contexts/AuthProvider";
 import MainLayout from "../../components/layout/MainLayout";
+import { getProfile, updateProfile } from "../../services/settingsService";
 
 export default function UserSettings() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [profile, setProfile] = useState({
     username: "",
     email: "",
     role: "",
   });
+  const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
 
+  // Fetch profile from API
   useEffect(() => {
-    if (user) {
-      setProfile({
-        username: user.username || "",
-        email: user.email || "",
-        role: user.role || "",
-      });
-    }
-  }, [user]);
+    const fetchProfile = async () => {
+      try {
+        const response = await getProfile();
+        if (response.success && response.data) {
+          setProfile({
+            username: response.data.username || "",
+            email: response.data.email || "",
+            role: response.data.role || "",
+          });
+        }
+      } catch (err) {
+        console.error("Failed to fetch profile:", err);
+        setError("Failed to load profile data");
+      }
+    };
+    
+    fetchProfile();
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setMessage("Profile saved (demo mode)");
-    setTimeout(() => setMessage(""), 3000);
+    setLoading(true);
+    setMessage("");
+    setError("");
+    
+    try {
+      const response = await updateProfile({ email: profile.email });
+      if (response.success) {
+        setMessage("Profile updated successfully!");
+        // Refresh auth context to get updated user data
+        if (refreshUser) {
+          await refreshUser();
+        }
+      } else {
+        setError(response.error || "Failed to update profile");
+      }
+    } catch (err) {
+      console.error("Update profile error:", err);
+      setError(err.response?.data?.error || "Failed to update profile");
+    } finally {
+      setLoading(false);
+      setTimeout(() => {
+        setMessage("");
+        setError("");
+      }, 3000);
+    }
   };
 
   const cardStyle = {
@@ -120,9 +157,18 @@ export default function UserSettings() {
             {message && (
               <div style={{ color: "#10b981", marginBottom: "10px" }}>{message}</div>
             )}
+            {error && (
+              <div style={{ color: "#ef4444", marginBottom: "10px" }}>{error}</div>
+            )}
 
-            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} type="submit" style={buttonStyle}>
-              💾 Save Changes
+            <motion.button 
+              whileHover={{ scale: 1.05 }} 
+              whileTap={{ scale: 0.95 }} 
+              type="submit" 
+              style={buttonStyle}
+              disabled={loading}
+            >
+              {loading ? "⏳ Saving..." : "💾 Save Changes"}
             </motion.button>
           </form>
         </div>

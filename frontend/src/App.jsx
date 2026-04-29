@@ -18,6 +18,7 @@ import ScanForm from "./pages/Scanner/ScanForm";
 import ScanHistory from "./pages/Scanner/ScanHistory";
 import ScanResult from "./pages/Scanner/ScanResult";
 import EnhancedScanResult from "./pages/Scanner/EnhancedScanResult";
+import AISecurityLab from "./pages/AI/AISecurityLab";
 
 // Alerts
 import AlertList from "./pages/Alerts/AlertList";
@@ -150,6 +151,16 @@ const AppContent = () => {
           element={
             <ProtectedRoute>
               <TrafficGraph />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* AI Security Lab */}
+        <Route
+          path="/ai-lab"
+          element={
+            <ProtectedRoute>
+              <AISecurityLab />
             </ProtectedRoute>
           }
         />

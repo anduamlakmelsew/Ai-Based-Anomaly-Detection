@@ -4,8 +4,16 @@ from app import db   # ✅ ONLY THIS
 
 
 def seed_database(app):
+    from sqlalchemy import inspect
     from app.models.user_model import User
     from app.models.settings_model import Settings
+
+    # Check if tables exist (skip during migrations)
+    with app.app_context():
+        inspector = inspect(db.engine)
+        if 'users' not in inspector.get_table_names():
+            print("⚠️  Tables not ready, skipping seed (run migrations first)")
+            return
 
     # =========================
     # ADMIN USER

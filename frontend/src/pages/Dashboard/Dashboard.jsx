@@ -7,14 +7,19 @@ import ActivityLog from "./ActivityLog";
 import TrafficChart from "./TrafficChart";
 import VulnerabilityPanel from "./VulnerabilityPanel";
 
-// 🔴 Safe socket initialization
-let socket;
+// Socket connection with fallback
+let socket = null;
+
 try {
-  socket = io("http://127.0.0.1:5000", {
+  socket = io("http://127.0.0.1:5003", {
     transports: ["websocket", "polling"],
+    reconnection: true,
+    reconnectionDelay: 1000,
+    reconnectionAttempts: 3
   });
 } catch (err) {
-  console.warn("Socket failed:", err);
+  console.warn("⚠️ WebSocket initialization failed:", err);
+  socket = null;
 }
 
 export default function Dashboard() {
@@ -22,20 +27,42 @@ export default function Dashboard() {
   const [liveScan, setLiveScan] = useState(null);
 
   useEffect(() => {
+    // Initial data load
     loadData();
 
+    // Setup WebSocket listeners if available
     if (socket) {
+      socket.on("connect", () => {
+        console.log("✅ WebSocket connected");
+      });
+      
+      socket.on("disconnect", () => {
+        console.warn("⚠️ WebSocket disconnected");
+      });
+      
+      socket.on("connect_error", (error) => {
+        console.warn("⚠️ WebSocket connection failed:", error.message);
+      });
+
       socket.on("scan_progress", (data) => {
+        console.log("📡 Received scan_progress:", data);
         setLiveScan(data);
 
         if (data.status === "completed") {
           loadData();
         }
       });
+    } else {
+      console.warn("⚠️ WebSocket not available - use manual refresh");
     }
 
     return () => {
-      if (socket) socket.off("scan_progress");
+      if (socket) {
+        socket.off("connect");
+        socket.off("disconnect");
+        socket.off("connect_error");
+        socket.off("scan_progress");
+      }
     };
   }, []);
 

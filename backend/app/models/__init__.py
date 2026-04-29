@@ -8,3 +8,4 @@ from .alert_model import Alert
 from .report_model import Report
 from .settings_model import Settings  # <-- matches your class name
 from .log_model import Log
+from .ai_detection_event_model import AIDetectionEvent
